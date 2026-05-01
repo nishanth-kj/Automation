@@ -1,5 +1,4 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QStackedWidget, QApplication
-from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QSplitter
 from PySide6.QtCore import Qt
 
 from ui.components.sidebar import Sidebar
@@ -7,12 +6,15 @@ from ui.pages.home_page import HomePage
 from ui.pages.news_detail_page import NewsDetailPage
 from ui.pages.meme_page import MemePage
 from ui.pages.history_page import HistoryPage
+from ui.components.console_widget import ConsoleWidget, QtLogHandler
 
 from services.news_service import NewsService
 from services.text_service import TextService
 from services.image_generate_service import ImageGenerateService
 from services.meme_service import MemeService
 from services.websocket_service import WebSocketService
+from utils.logger import logger
+import logging
 
 
 class MainWindow(QWidget):
@@ -20,9 +22,21 @@ class MainWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle("AI News Meme Generator")
-        self.resize(1100, 750)
+        self.resize(1200, 850)
 
-        layout = QHBoxLayout()
+        # Main Layout
+        main_vbox = QVBoxLayout(self)
+        main_vbox.setContentsMargins(0, 0, 0, 0)
+        main_vbox.setSpacing(0)
+
+        # Splitter for Content vs Console
+        self.vertical_splitter = QSplitter(Qt.Vertical)
+
+        # Horizontal layout for Sidebar + Stack
+        content_widget = QWidget()
+        content_hbox = QHBoxLayout(content_widget)
+        content_hbox.setContentsMargins(0, 0, 0, 0)
+        content_hbox.setSpacing(0)
 
         # Sidebar
         self.sidebar = Sidebar()
@@ -49,11 +63,31 @@ class MainWindow(QWidget):
         self.meme_page = MemePage()
         self.history_page = HistoryPage()
 
-        # Add pages
+        # Add pages to stack
         self.stack.addWidget(self.home_page)
         self.stack.addWidget(self.news_page)
         self.stack.addWidget(self.meme_page)
         self.stack.addWidget(self.history_page)
+
+        content_hbox.addWidget(self.sidebar)
+        content_hbox.addWidget(self.stack, 1)
+
+        # Console
+        self.console = ConsoleWidget()
+        
+        # Connect Logger to Console
+        self.qt_log_handler = QtLogHandler()
+        self.qt_log_handler.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | %(message)s', '%H:%M:%S'))
+        self.qt_log_handler.signal.new_log.connect(self.console.append_log)
+        logger.addHandler(self.qt_log_handler)
+
+        # Add to splitter
+        self.vertical_splitter.addWidget(content_widget)
+        self.vertical_splitter.addWidget(self.console)
+        self.vertical_splitter.setStretchFactor(0, 4)
+        self.vertical_splitter.setStretchFactor(1, 1)
+
+        main_vbox.addWidget(self.vertical_splitter)
 
         # Sidebar actions
         self.sidebar.home_btn.clicked.connect(self.show_home)
@@ -63,32 +97,18 @@ class MainWindow(QWidget):
         # Back button in News Page
         self.news_page.back_btn.clicked.connect(self.show_home)
 
-        layout.addWidget(self.sidebar)
-        layout.addWidget(self.stack, 1)
-
-        self.setLayout(layout)
-
-        # default page
+        # Default page
         self.show_home()
 
     # ------------------ Navigation ------------------
 
     def show_home(self):
-        self.sidebar.home_btn.setDown(True)
-        self.sidebar.meme_btn.setDown(False)
-        self.sidebar.history_btn.setDown(False)
         self.stack.setCurrentWidget(self.home_page)
 
     def show_meme(self):
-        self.sidebar.home_btn.setDown(False)
-        self.sidebar.meme_btn.setDown(True)
-        self.sidebar.history_btn.setDown(False)
         self.stack.setCurrentWidget(self.meme_page)
 
     def show_history(self):
-        self.sidebar.home_btn.setDown(False)
-        self.sidebar.meme_btn.setDown(False)
-        self.sidebar.history_btn.setDown(True)
         self.history_page.load_history()
         self.stack.setCurrentWidget(self.history_page)
 
