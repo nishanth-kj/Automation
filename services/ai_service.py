@@ -2,7 +2,8 @@ from transformers import AutoProcessor, AutoModelForCausalLM
 import torch
 
 class AiService:
-    def __init__(self, model_id="models/google/gemma-4-E4B"):
+    def __init__(self, model_id="models/gemma-4-E2B-it"):
+
         self.model_id = model_id
 
         # Load once
