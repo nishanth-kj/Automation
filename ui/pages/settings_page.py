@@ -1,14 +1,32 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QTextEdit, QComboBox, QHBoxLayout, QCheckBox
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QComboBox, QCheckBox, QTabWidget, QPushButton
 from repository.setting_repository import SettingRepository
+from ui.pages.database_page import DatabasePage
 
 class SettingsPage(QWidget):
     def __init__(self):
         super().__init__()
         self.repo = SettingRepository()
         
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel("Application Settings"))
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Settings & Data Management"))
+        
+        self.tabs = QTabWidget()
+        
+        # Tab 1: General Settings
+        self.general_tab = QWidget()
+        self.setup_general_tab()
+        
+        # Tab 2: Database Explorer
+        self.db_tab = DatabasePage()
+        
+        self.tabs.addTab(self.general_tab, "General")
+        self.tabs.addTab(self.db_tab, "Database Explorer")
+        
+        layout.addWidget(self.tabs)
 
+    def setup_general_tab(self):
+        layout = QVBoxLayout(self.general_tab)
+        
         # Theme Setting
         theme_layout = QHBoxLayout()
         theme_layout.addWidget(QLabel("UI Theme:"))
@@ -45,18 +63,16 @@ class SettingsPage(QWidget):
         
         self.status = QLabel("")
         layout.addWidget(self.status)
-
         layout.addStretch()
-        self.setLayout(layout)
 
     def save(self):
         self.repo.set("theme", self.theme_box.currentText().lower())
         self.repo.set("show_logs", "true" if self.log_toggle.isChecked() else "false")
         self.repo.set("meme_prompt", self.prompt_edit.toPlainText())
         self.repo.set("selection_prompt", self.selection_prompt.toPlainText())
-        self.status.setText("Settings saved!")
+        self.status.setText("✅ Settings saved!")
         
-        # Trigger theme/logs apply in MainWindow
+        # Trigger updates in MainWindow
         from ui.main_window import MainWindow
         from PySide6.QtWidgets import QApplication
         for widget in QApplication.topLevelWidgets():

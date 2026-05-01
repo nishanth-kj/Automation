@@ -1,35 +1,45 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton, QLabel, QFrame
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsDropShadowEffect
+from PySide6.QtCore import Qt, Signal, QPoint
+from PySide6.QtGui import QColor, QLinearGradient, QPalette, QBrush
 
 class ToolCard(QFrame):
     clicked = Signal()
-    def __init__(self, title, description, color="#3498db"):
+    def __init__(self, title, description, color_start, color_end):
         super().__init__()
-        self.setFrameShape(QFrame.StyledPanel)
-        self.setFixedSize(250, 180)
+        self.setObjectName("card")
+        self.setFixedSize(280, 200)
+        
+        # Apply shadow
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(15)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 40))
+        self.setGraphicsEffect(shadow)
+        
         self.setStyleSheet(f"""
-            ToolCard {{
-                background-color: white;
-                border: 2px solid {color};
-                border-radius: 12px;
+            QFrame#card {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {color_start}, stop:1 {color_end});
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 16px;
             }}
-            ToolCard:hover {{
-                background-color: #f9f9f9;
-                border-width: 3px;
+            QFrame#card:hover {{
+                border: 2px solid white;
             }}
         """)
         
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
         layout.setAlignment(Qt.AlignCenter)
         
         t_lbl = QLabel(title)
-        t_lbl.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {color};")
+        t_lbl.setStyleSheet("font-size: 20px; font-weight: 800; color: white; border: none;")
         layout.addWidget(t_lbl, 0, Qt.AlignCenter)
         
         d_lbl = QLabel(description)
         d_lbl.setWordWrap(True)
         d_lbl.setAlignment(Qt.AlignCenter)
-        d_lbl.setStyleSheet("color: #666; font-size: 12px;")
+        d_lbl.setStyleSheet("color: rgba(255, 255, 255, 0.8); font-size: 13px; border: none; font-weight: 500;")
         layout.addWidget(d_lbl, 0, Qt.AlignCenter)
         
         self.setCursor(Qt.PointingHandCursor)
@@ -42,29 +52,36 @@ class HomePage(QWidget):
         super().__init__()
         self.nav_callback = nav_callback
 
-        layout = QVBoxLayout()
-        layout.setContentsMargins(40, 40, 40, 40)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(50, 50, 50, 50)
+        layout.setSpacing(30)
         
-        header = QLabel("Welcome to AI News Meme Studio")
-        header.setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50; margin-bottom: 20px;")
-        layout.addWidget(header)
+        welcome_layout = QVBoxLayout()
+        header = QLabel("AI News Meme Studio")
+        header.setStyleSheet("font-size: 32px; font-weight: 900; color: #3b82f6; border: none;")
+        welcome_layout.addWidget(header)
+        
+        sub_header = QLabel("Select a tool to get started with your content creation.")
+        sub_header.setStyleSheet("font-size: 16px; color: #64748b; border: none;")
+        welcome_layout.addWidget(sub_header)
+        layout.addLayout(welcome_layout)
         
         grid = QGridLayout()
-        grid.setSpacing(20)
+        grid.setSpacing(25)
         
-        # Define Tools
+        # Tools with Gradient pairs
         tools = [
-            ("News Feed", "Browse latest trending stories", "news", "#3498db"),
-            ("Meme Gen", "Create viral AI memes", "meme", "#e67e22"),
-            ("History", "View your generated memes", "history", "#2ecc71"),
-            ("Chat AI", "Talk to Gemma AI directly", "chat", "#9b59b6"),
-            ("AI Knowledge", "RAG-powered semantic search", "rag", "#f1c40f"),
-            ("Settings", "Configure AI and UI themes", "settings", "#95a5a6"),
+            ("News Feed", "Explore trending global news", "news", "#3b82f6", "#1d4ed8"),
+            ("Meme Gen", "Generate viral AI memes", "meme", "#f97316", "#c2410c"),
+            ("History", "Your past masterpieces", "history", "#10b981", "#047857"),
+            ("Chat AI", "Interact with Gemma", "chat", "#8b5cf6", "#6d28d9"),
+            ("Knowledge", "RAG Semantic Search", "rag", "#f59e0b", "#d97706"),
+            ("Settings", "System configuration", "settings", "#64748b", "#334155"),
         ]
         
         row, col = 0, 0
-        for title, desc, key, color in tools:
-            card = ToolCard(title, desc, color)
+        for title, desc, key, c1, c2 in tools:
+            card = ToolCard(title, desc, c1, c2)
             card.clicked.connect(lambda k=key: self.nav_callback(k))
             grid.addWidget(card, row, col)
             col += 1
@@ -74,4 +91,3 @@ class HomePage(QWidget):
                 
         layout.addLayout(grid)
         layout.addStretch()
-        self.setLayout(layout)

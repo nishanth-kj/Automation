@@ -119,17 +119,14 @@ class MainWindow(QWidget):
 
     def setup_logging(self):
         self.qt_log_handler = QtLogHandler()
-        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s', datefmt='%H:%M:%S')
+        formatter = logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s', datefmt='%H:%M:%S')
         self.qt_log_handler.setFormatter(formatter)
         self.qt_log_handler.signal.new_log.connect(self.console.append_log)
         logger.addHandler(self.qt_log_handler)
 
     def apply_settings(self):
-        # Theme
         theme = self.setting_repo.get("theme", "dark")
         self.setStyleSheet(ThemeManager.get_dark_theme() if theme == "dark" else ThemeManager.get_light_theme())
-        
-        # Logs
         show_logs = self.setting_repo.get("show_logs", "true") == "true"
         self.console.setVisible(show_logs)
 
@@ -146,15 +143,10 @@ class MainWindow(QWidget):
 
     def navigate_by_key(self, key):
         mapping = {
-            "news": self.news_page,
-            "meme": self.meme_page,
-            "history": self.history_page,
-            "chat": self.chat_page,
-            "rag": self.rag_page,
-            "settings": self.settings_page
+            "news": self.news_page, "meme": self.meme_page, "history": self.history_page,
+            "chat": self.chat_page, "rag": self.rag_page, "settings": self.settings_page
         }
-        if key in mapping:
-            self.switch_page(mapping[key])
+        if key in mapping: self.switch_page(mapping[key])
 
     def show_home(self): self.switch_page(self.dashboard)
     def show_news(self): self.switch_page(self.news_page)
