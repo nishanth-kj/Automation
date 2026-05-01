@@ -1,5 +1,4 @@
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QCheckBox, QGraphicsDropShadowEffect
-from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QCheckBox
 from PySide6.QtCore import Qt
 
 class NewsCard(QFrame):
@@ -9,55 +8,48 @@ class NewsCard(QFrame):
         self.view_callback = view_callback
         
         self.setObjectName("news_card")
-        self.setFixedHeight(120)
+        self.setFixedHeight(100)
         
-        # Modern Card Style
         self.setStyleSheet("""
             QFrame#news_card {
-                background-color: #1e293b;
-                border: 1px solid #334155;
-                border-radius: 12px;
-                margin: 5px 10px;
+                background-color: #000;
+                border-bottom: 1px solid #111;
+                border-radius: 0px;
+                margin: 0px;
             }
             QFrame#news_card:hover {
-                background-color: #334155;
-                border: 1px solid #3b82f6;
+                background-color: #050505;
+                border-bottom: 1px solid #333;
             }
             QLabel#title {
-                font-size: 15px;
-                font-weight: 700;
-                color: #f8fafc;
+                font-size: 14px;
+                font-weight: 600;
+                color: #fff;
                 border: none;
             }
             QLabel#source {
-                font-size: 11px;
-                font-weight: 500;
-                color: #3b82f6;
+                font-size: 9px;
+                font-weight: 800;
+                color: #444;
                 border: none;
                 text-transform: uppercase;
+                letter-spacing: 1px;
             }
         """)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(15)
+        layout.setContentsMargins(20, 10, 20, 10)
+        layout.setSpacing(20)
         
         # Selection
         self.checkbox = QCheckBox()
         layout.addWidget(self.checkbox)
 
-        # Thumbnail with rounded corners
-        self.img_label = QLabel()
-        self.img_label.setFixedSize(120, 90)
-        self.img_label.setStyleSheet("background-color: #0f172a; border-radius: 8px;")
-        self.img_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.img_label)
-
         # Content
         text_layout = QVBoxLayout()
-        text_layout.setSpacing(4)
+        text_layout.setSpacing(2)
         
-        self.source_label = QLabel(news.get("source", "Unknown").upper())
+        self.source_label = QLabel(news.get("source", "Unknown"))
         self.source_label.setObjectName("source")
         
         self.title_label = QLabel(news.get("title", "No Title"))
@@ -71,17 +63,20 @@ class NewsCard(QFrame):
         layout.addLayout(text_layout, 1)
 
         # Action
-        self.view_btn = QPushButton("Open")
-        self.view_btn.setFixedSize(80, 36)
+        self.view_btn = QPushButton("OPEN")
+        self.view_btn.setFixedSize(70, 30)
         self.view_btn.setStyleSheet("""
             QPushButton {
-                background-color: #3b82f6;
-                color: white;
-                font-weight: 700;
-                border-radius: 18px;
+                background-color: #fff;
+                color: #000;
+                font-size: 9px;
+                font-weight: 900;
+                border-radius: 0px;
             }
             QPushButton:hover {
-                background-color: #60a5fa;
+                background-color: #000;
+                color: #fff;
+                border: 1px solid #fff;
             }
         """)
         self.view_btn.clicked.connect(lambda: self.view_callback(self.news))
