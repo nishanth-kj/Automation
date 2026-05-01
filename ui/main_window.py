@@ -3,6 +3,7 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 
 from ui.components.sidebar import Sidebar
 from ui.pages.home_page import HomePage
+from ui.pages.news_page import NewsPage
 from ui.pages.news_detail_page import NewsDetailPage
 from ui.pages.meme_page import MemePage
 from ui.pages.history_page import HistoryPage
@@ -28,7 +29,7 @@ class MainWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle("AI News Meme Studio")
-        self.resize(1200, 850)
+        self.resize(1300, 900)
         self.setting_repo = SettingRepository()
 
         # Layout
@@ -49,8 +50,8 @@ class MainWindow(QWidget):
         self.opacity_effect = QGraphicsOpacityEffect(self.stack)
         self.stack.setGraphicsEffect(self.opacity_effect)
         self.animation = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.animation.setDuration(400)
-        self.animation.setEasingCurve(QEasingCurve.InOutQuad)
+        self.animation.setDuration(350)
+        self.animation.setEasingCurve(QEasingCurve.OutQuad)
 
         # Services
         self.news_service = NewsService()
@@ -61,8 +62,9 @@ class MainWindow(QWidget):
         self.ws_service.start()
 
         # Pages
-        self.home_page = HomePage(self.news_service, self.open_news, self.ws_service)
-        self.news_page = NewsDetailPage(
+        self.dashboard = HomePage(self.navigate_by_key)
+        self.news_page = NewsPage(self.news_service, self.open_news_detail, self.ws_service)
+        self.news_detail = NewsDetailPage(
             self.text_service,
             self.image_service,
             self.meme_service,
@@ -77,8 +79,9 @@ class MainWindow(QWidget):
         self.rag_page = RagPage()
 
         # Add pages
-        self.stack.addWidget(self.home_page)
+        self.stack.addWidget(self.dashboard)
         self.stack.addWidget(self.news_page)
+        self.stack.addWidget(self.news_detail)
         self.stack.addWidget(self.meme_page)
         self.stack.addWidget(self.history_page)
         self.stack.addWidget(self.web_page)
@@ -90,39 +93,49 @@ class MainWindow(QWidget):
         content_hbox.addWidget(self.stack, 1)
 
         self.console = ConsoleWidget()
+        self.console.close_requested.connect(self.hide_console)
         self.setup_logging()
 
         self.vertical_splitter.addWidget(content_widget)
         self.vertical_splitter.addWidget(self.console)
-        self.vertical_splitter.setStretchFactor(0, 4)
+        self.vertical_splitter.setStretchFactor(0, 5)
         self.vertical_splitter.setStretchFactor(1, 1)
 
         main_vbox.addWidget(self.vertical_splitter)
 
-        # Actions
+        # Sidebar Actions
         self.sidebar.home_btn.clicked.connect(self.show_home)
+        self.sidebar.news_btn.clicked.connect(self.show_news)
         self.sidebar.meme_btn.clicked.connect(self.show_meme)
         self.sidebar.history_btn.clicked.connect(self.show_history)
         self.sidebar.chat_btn.clicked.connect(self.show_chat)
         self.sidebar.rag_btn.clicked.connect(self.show_rag)
         self.sidebar.settings_btn.clicked.connect(self.show_settings)
-        self.news_page.back_btn.clicked.connect(self.show_home)
+        
+        self.news_detail.back_btn.clicked.connect(self.show_news)
 
-        self.apply_theme()
+        self.apply_settings()
         self.show_home()
 
     def setup_logging(self):
         self.qt_log_handler = QtLogHandler()
-        self.qt_log_handler.setFormatter(logging.Formatter('%H:%M:%S | %(levelname)s | %(message)s'))
+        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s', datefmt='%H:%M:%S')
+        self.qt_log_handler.setFormatter(formatter)
         self.qt_log_handler.signal.new_log.connect(self.console.append_log)
         logger.addHandler(self.qt_log_handler)
 
-    def apply_theme(self):
+    def apply_settings(self):
+        # Theme
         theme = self.setting_repo.get("theme", "dark")
-        if theme == "dark":
-            self.setStyleSheet(ThemeManager.get_dark_theme())
-        else:
-            self.setStyleSheet(ThemeManager.get_light_theme())
+        self.setStyleSheet(ThemeManager.get_dark_theme() if theme == "dark" else ThemeManager.get_light_theme())
+        
+        # Logs
+        show_logs = self.setting_repo.get("show_logs", "true") == "true"
+        self.console.setVisible(show_logs)
+
+    def hide_console(self):
+        self.console.hide()
+        self.setting_repo.set("show_logs", "false")
 
     def switch_page(self, widget):
         self.animation.stop()
@@ -131,7 +144,20 @@ class MainWindow(QWidget):
         self.stack.setCurrentWidget(widget)
         self.animation.start()
 
-    def show_home(self): self.switch_page(self.home_page)
+    def navigate_by_key(self, key):
+        mapping = {
+            "news": self.news_page,
+            "meme": self.meme_page,
+            "history": self.history_page,
+            "chat": self.chat_page,
+            "rag": self.rag_page,
+            "settings": self.settings_page
+        }
+        if key in mapping:
+            self.switch_page(mapping[key])
+
+    def show_home(self): self.switch_page(self.dashboard)
+    def show_news(self): self.switch_page(self.news_page)
     def show_meme(self): self.switch_page(self.meme_page)
     def show_history(self):
         self.history_page.load_history()
@@ -139,10 +165,10 @@ class MainWindow(QWidget):
     def show_chat(self): self.switch_page(self.chat_page)
     def show_rag(self): self.switch_page(self.rag_page)
     def show_settings(self): self.switch_page(self.settings_page)
-    def show_news_detail(self): self.switch_page(self.news_page)
+    def show_news_detail(self): self.switch_page(self.news_detail)
 
-    def open_news(self, news):
-        self.news_page.load_news(news, self.news_service)
+    def open_news_detail(self, news):
+        self.news_detail.load_news(news, self.news_service)
         self.show_news_detail()
 
     def open_internal_web(self, url):

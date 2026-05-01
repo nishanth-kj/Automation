@@ -1,11 +1,21 @@
 from transformers import AutoTokenizer, AutoModel
 import torch
 import numpy as np
+import os
 
 class EmbeddingService:
     def __init__(self, model_name="sentence-transformers/all-MiniLM-L6-v2"):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModel.from_pretrained(model_name)
+        self.local_path = os.path.join("models", model_name.split("/")[-1])
+        os.makedirs(self.local_path, exist_ok=True)
+        
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, 
+            cache_dir=self.local_path
+        )
+        self.model = AutoModel.from_pretrained(
+            model_name, 
+            cache_dir=self.local_path
+        )
 
     def get_embeddings(self, texts):
         inputs = self.tokenizer(texts, padding=True, truncation=True, return_tensors="pt")

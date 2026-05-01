@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QTextEdit, QComboBox, QHBoxLayout
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QTextEdit, QComboBox, QHBoxLayout, QCheckBox
 from repository.setting_repository import SettingRepository
 
 class SettingsPage(QWidget):
@@ -18,6 +18,12 @@ class SettingsPage(QWidget):
         self.theme_box.setCurrentText(current_theme)
         theme_layout.addWidget(self.theme_box)
         layout.addLayout(theme_layout)
+
+        # Log Toggle
+        self.log_toggle = QCheckBox("Show System Logs Console")
+        current_logs = self.repo.get("show_logs", "true") == "true"
+        self.log_toggle.setChecked(current_logs)
+        layout.addWidget(self.log_toggle)
 
         # Meme Prompt
         layout.addWidget(QLabel("Meme Generation Prompt:"))
@@ -45,13 +51,14 @@ class SettingsPage(QWidget):
 
     def save(self):
         self.repo.set("theme", self.theme_box.currentText().lower())
+        self.repo.set("show_logs", "true" if self.log_toggle.isChecked() else "false")
         self.repo.set("meme_prompt", self.prompt_edit.toPlainText())
         self.repo.set("selection_prompt", self.selection_prompt.toPlainText())
-        self.status.setText("✅ Settings saved! Restart or re-open to see full effects.")
+        self.status.setText("Settings saved!")
         
-        # Trigger theme apply in MainWindow if possible
+        # Trigger theme/logs apply in MainWindow
         from ui.main_window import MainWindow
         from PySide6.QtWidgets import QApplication
         for widget in QApplication.topLevelWidgets():
             if isinstance(widget, MainWindow):
-                widget.apply_theme()
+                widget.apply_settings()
