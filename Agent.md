@@ -1,52 +1,56 @@
 # AI News Meme Studio - System Documentation
 
 ## Overview
-AI News Meme Studio is a high-fidelity desktop application built with PySide6 that automates the creation of memes from trending technology news. It leverages state-of-the-art AI models (Gemma 4 for text and Flux-based Z-Image for images) to generate contextual and humorous content.
+AI News Meme Studio is a high-fidelity desktop application built with PySide6 that automates the creation of memes from trending news across the web. It uses a decoupled, asynchronous architecture to ensure a smooth user experience while processing heavy AI tasks.
 
 ## Technology Stack
 - **UI Framework**: PySide6 (Qt for Python)
 - **AI Models**:
-  - **Text Generation**: `google/gemma-4-E2B-it` (Text-to-Text/Multimodal)
-  - **Image Generation**: `z_image_turbo_bf16` (Flux-based architecture)
-- **Image Processing**: Pillow (PIL)
-- **Web Scraping**: BeautifulSoup4 & Requests
-- **Database**: SQLAlchemy (SQLite) for tracking meme history
+  - **Text Generation**: `google/gemma-4-E2B-it`
+  - **Image Generation**: `z_image_turbo_bf16` (Flux-based)
+- **Data & Communication**:
+  - **Database**: SQLAlchemy (SQLite) with BigInteger epoch timestamps and soft-delete support.
+  - **Real-time**: QtWebSockets for decoupled service-to-UI notifications.
+  - **Concurrency**: QThread-based background workers for non-blocking I/O.
+- **Scraping**: BeautifulSoup4, Requests (Google News, Reddit, Bing, DuckDuckGo).
+- **Logging**: Centralized Python logging to `logs/app.log`.
 
 ## Application Architecture
 
-### 1. Services Layer (`/services`)
-- **NewsService**: Scrapes Google News for the latest technology headlines and resolves redirects to fetch full article content.
-- **TextService**: Interfaces with the Gemma 4 model to convert news summaries into funny meme captions (TOP and BOTTOM text).
-- **ImageGenerateService**: Uses the Flux/Z-Image model via Diffusers to generate high-quality images based on news headlines.
-- **MemeService**: Handles the compositing of text onto images using Pillow, with robust font fallback mechanisms.
-- **AiService**: A base/utility service for causal language model interactions.
+### 1. Communication Layer
+- **WebSocketService**: A local WebSocket server that broadcasts system events (like "news_refresh_complete") to the UI.
+- **NewsRefreshWorker**: A background thread that fetches news from multiple sources, persists them to the DB as `PENDING`, and then marks them as `ACTIVE` before notifying the UI.
 
-### 2. UI Layer (`/ui`)
-- **MainWindow**: The main container managing navigation and service orchestration.
-- **Sidebar**: Provides navigation between the News feed and the Custom Meme Generator.
-- **Pages**:
-  - **HomePage**: Displays a scrollable list of trending news.
-  - **NewsDetailPage**: Displays article content and provides the primary "Create Meme" trigger.
-  - **MemePage**: Shows the final result and allows for custom topic-based meme generation.
+### 2. Services Layer (`/services`)
+- **NewsService**: Aggregates trending news from Google, Reddit, Bing, and DuckDuckGo with image and source extraction.
+- **TextService**: Generates funny meme captions using Gemma 4.
+- **ImageGenerateService**: Generates contextual images using the Flux model.
+- **MemeService**: Composites text onto images using Pillow with fallback font support.
 
 ### 3. Repository Layer (`/repository`)
-- **MemeRepository**: Manages the persistence of generated memes, storing metadata like headlines, text, and file paths.
+- **NewsRepository**: Manages persistent news storage, sorting (Newest/Source), and soft-deletion.
+- **MemeRepository**: Manages the collection of generated memes with `ACTIVE/DELETED` status tracking.
+
+### 4. Utility Layer (`/utils`)
+- **TimeUtils**: Standardized Epoch/Unix timestamp handling.
+- **Status Enum**: Centralized state management (`ACTIVE`, `PENDING`, `DELETED`, `ERROR`).
+- **Logger**: Centralized logging instance used throughout the app.
 
 ## Application Flow
 
-1. **Discovery**: Upon startup, the `NewsService` fetches the latest headlines.
-2. **Selection**: The user selects a news story from the `HomePage`.
-3. **Extraction**: The `NewsDetailPage` fetches the full article content to provide context for the AI.
-4. **Generation (Parallel/Sequential)**:
-   - **Text**: Gemma 4 analyzes the news and generates a humorous TOP/BOTTOM caption pair.
-   - **Image**: The image model generates a visual representation of the news theme.
-5. **Composition**: `MemeService` overlays the AI-generated text onto the generated image.
-6. **Result**: The final meme is displayed and can be saved or shared.
+1. **Initialization**: On startup, the `MainWindow` starts the `WebSocketService` and the UI loads existing `ACTIVE` news from the database.
+2. **Discovery (Async)**: User triggers "Refresh from Web". A `NewsRefreshWorker` starts in the background.
+3. **Persistence**: The worker saves news to the DB. When finished, it broadcasts a notification via WebSockets.
+4. **Synchronization**: The `HomePage` receives the WS message and reloads the news feed from the DB.
+5. **Meme Creation**:
+   - AI generates text and image in parallel/sequence.
+   - `MemeRepository` saves the metadata.
+6. **Soft Delete**: Any deleted content is marked as `DELETED` in the database, ensuring no data loss while hiding it from the user.
 
-## Setup & Maintenance
-- **Dependencies**: Managed via `uv` or `pip`. See `pyproject.toml`.
-- **Models**: Large model weights should be placed in the `/models` directory (ignored by Git).
-- **Assets**: Fonts and templates are stored in the `/assets` directory.
+## Data Schema Standards
+- **Primary Keys**: Named `[table_name]_id`.
+- **Status**: Integer codes from the `Status` enum.
+- **Timestamps**: `BigInteger` Epochs (UTC).
 
 ---
 *Generated by Antigravity AI Agent*

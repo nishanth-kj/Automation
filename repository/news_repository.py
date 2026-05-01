@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, String, Text, BigInteger
 from repository.database.db import Base, SessionLocal
 from utils.contants.status import Status
 from utils.time_utils import TimeUtils
+from utils.logger import logger
+from utils.pagination import Page
 
 class News(Base):
     __tablename__ = "news"
@@ -13,7 +15,7 @@ class News(Base):
     image_url = Column(String, nullable=True)
     content = Column(Text, nullable=True)
     category = Column(String, default="trending")
-    status = Column(Integer, default=Status.ACTIVE.code)
+    status = Column(Integer, default=Status.PENDING.code)
     created_at = Column(BigInteger, default=TimeUtils.now_epoch)
     updated_at = Column(BigInteger, default=TimeUtils.now_epoch, onupdate=TimeUtils.now_epoch)
 
@@ -21,30 +23,66 @@ class NewsRepository:
     def __init__(self):
         self.db = SessionLocal()
 
-    def save_all(self, news_items):
+    def save_all(self, news_items, status=Status.PENDING.code):
+        saved_ids = []
         for item in news_items:
-            # Check if title already exists to avoid duplicates
-            exists = self.db.query(News).filter(News.title == item["title"]).first()
-            if not exists:
-                news = News(
-                    title=item["title"],
-                    url=item["url"],
-                    source=item["source"],
-                    image_url=item.get("image_url"),
-                    category=item.get("category", "trending"),
-                    status=Status.ACTIVE.code,
-                    created_at=TimeUtils.now_epoch(),
-                    updated_at=TimeUtils.now_epoch()
-                )
-                self.db.add(news)
+            try:
+                exists = self.db.query(News).filter(News.title == item["title"]).first()
+                if not exists:
+                    news = News(
+                        title=item["title"],
+                        url=item["url"],
+                        source=item["source"],
+                        image_url=item.get("image_url"),
+                        category=item.get("category", "trending"),
+                        status=status,
+                        created_at=TimeUtils.now_epoch(),
+                        updated_at=TimeUtils.now_epoch()
+                    )
+                    self.db.add(news)
+                    self.db.flush()
+                    saved_ids.append(news.news_id)
+            except Exception as e:
+                logger.error(f"Failed to save news item '{item.get('title')}': {e}")
+                self.db.rollback()
+        self.db.commit()
+        return saved_ids
+
+    def update_status(self, news_ids, new_status):
+        logger.info(f"DB: Updating status for {len(news_ids)} news items to code {new_status}")
+        self.db.query(News).filter(News.news_id.in_(news_ids)).update(
+            {News.status: new_status, News.updated_at: TimeUtils.now_epoch()},
+            synchronize_session=False
+        )
         self.db.commit()
 
-    def get_news(self, limit=20, offset=0, sort_by="newest"):
+    def delete(self, news_id):
+        logger.info(f"DB: Soft-deleting news item {news_id}")
+        news = self.get_by_id(news_id)
+        if news:
+            news.status = Status.DELETED.code
+            news.updated_at = TimeUtils.now_epoch()
+            self.db.commit()
+
+    def get_by_id(self, news_id):
+        return self.db.query(News).filter(News.news_id == news_id).first()
+
+    def get_all(self, page=0, size=20, sort_by="newest", sort_order="desc"):
+        logger.info(f"DB: Fetching news page {page} with size {size}")
         query = self.db.query(News).filter(News.status == Status.ACTIVE.code)
+        total_elements = query.count()
         
         if sort_by == "newest":
-            query = query.order_by(News.created_at.desc())
+            col = News.created_at
         elif sort_by == "source":
-            query = query.order_by(News.source)
+            col = News.source
+        else:
+            col = News.news_id
+
+        if sort_order.lower() == "desc":
+            query = query.order_by(col.desc())
+        else:
+            query = query.order_by(col.asc())
             
-        return query.limit(limit).offset(offset).all()
+        content = query.limit(size).offset(page * size).all()
+        return Page.create(content, page, size, total_elements)
