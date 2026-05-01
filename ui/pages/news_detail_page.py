@@ -7,95 +7,29 @@ class NewsDetailPage(QWidget):
     def __init__(self, text_service, image_service, meme_service, show_result):
         super().__init__()
 
-        # services
         self.text_service = text_service
         self.image_service = image_service
         self.meme_service = meme_service
         self.show_result = show_result
 
-        # layout
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
 
-        # Header with back button
-        header = QHBoxLayout()
-        self.back_btn = QPushButton("← Back")
-        self.back_btn.setFixedWidth(80)
-        self.back_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #ecf0f1;
-                border: none;
-                border-radius: 4px;
-                padding: 5px;
-            }
-            QPushButton:hover {
-                background-color: #bdc3c7;
-            }
-        """)
-        header.addWidget(self.back_btn)
-        header.addStretch()
-        layout.addLayout(header)
-
-        # title
-        self.title_label = QLabel("Loading...")
-        self.title_label.setWordWrap(True)
-        self.title_label.setStyleSheet("font-size: 22px; font-weight: bold; color: #2c3e50;")
-
-        # divider
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        line.setStyleSheet("background-color: #ddd;")
-
-        # content
+        self.back_btn = QPushButton("Back")
+        self.title_label = QLabel("Title")
         self.content_box = QTextEdit()
         self.content_box.setReadOnly(True)
-        self.content_box.setStyleSheet("""
-            QTextEdit {
-                border: none;
-                background-color: transparent;
-                font-size: 15px;
-                line-height: 1.6;
-                color: #34495e;
-            }
-        """)
-
-        # button
-        self.generate_btn = QPushButton("Generate AI Meme from this News")
-        self.generate_btn.setFixedHeight(50)
-        self.generate_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2ecc71;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #27ae60;
-            }
-            QPushButton:disabled {
-                background-color: #95a5a6;
-            }
-        """)
-        self.generate_btn.setCursor(Qt.PointingHandCursor)
-        self.generate_btn.clicked.connect(self.generate_meme)
-
-        # status
+        self.generate_btn = QPushButton("Create Meme")
         self.status_label = QLabel("")
-        self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet("color: #7f8c8d; font-style: italic;")
 
-        # add widgets
+        layout.addWidget(self.back_btn)
         layout.addWidget(self.title_label)
-        layout.addWidget(line)
-        layout.addWidget(self.content_box, 1)
+        layout.addWidget(self.content_box)
         layout.addWidget(self.generate_btn)
         layout.addWidget(self.status_label)
 
         self.setLayout(layout)
+        self.generate_btn.clicked.connect(self.generate_meme)
+
 
     # ------------------ Load news ------------------
 

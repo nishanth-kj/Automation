@@ -14,66 +14,22 @@ class MemePage(QWidget):
         self.image_service = ImageGenerateService()
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setSpacing(20)
-
-        title = QLabel("AI Custom Meme Generator")
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50;")
-        layout.addWidget(title)
 
         self.input = QLineEdit()
-        self.input.setPlaceholderText("Describe the meme you want (e.g., 'doge at a computer')")
-        self.input.setFixedHeight(45)
-        self.input.setStyleSheet("""
-            QLineEdit {
-                border: 2px solid #bdc3c7;
-                border-radius: 8px;
-                padding: 10px;
-                font-size: 14px;
-            }
-            QLineEdit:focus {
-                border-color: #3498db;
-            }
-        """)
+        self.input.setPlaceholderText("Enter meme topic")
 
         self.button = QPushButton("Generate Meme")
-        self.button.setFixedHeight(50)
-        self.button.setStyleSheet("""
-            QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2980b9;
-            }
-        """)
-        self.button.clicked.connect(self.run)
-
-        # Result display
-        self.result_container = QFrame()
-        self.result_container.setStyleSheet("background-color: #f1f2f6; border-radius: 12px;")
-        result_layout = QVBoxLayout(self.result_container)
-        
-        self.image_label = QLabel("Your meme will appear here")
-        self.image_label.setAlignment(Qt.AlignCenter)
-        self.image_label.setStyleSheet("color: #7f8c8d; font-style: italic;")
-        self.image_label.setMinimumHeight(300)
-        
+        self.image_label = QLabel("Result")
         self.status_label = QLabel("")
-        self.status_label.setAlignment(Qt.AlignCenter)
-        
-        result_layout.addWidget(self.image_label)
-        result_layout.addWidget(self.status_label)
 
         layout.addWidget(self.input)
         layout.addWidget(self.button)
-        layout.addWidget(self.result_container, 1)
+        layout.addWidget(self.image_label)
+        layout.addWidget(self.status_label)
 
         self.setLayout(layout)
+        self.button.clicked.connect(self.run)
+
 
     def run(self):
         topic = self.input.text().strip()

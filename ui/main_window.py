@@ -17,30 +17,17 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("AI News Meme Studio")
-        self.resize(1100, 750)
-        
-        # Apply global styling
-        self.setStyleSheet("""
-            QWidget {
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background-color: #ffffff;
-                color: #2c3e50;
-            }
-            QStackedWidget {
-                background-color: #f9f9f9;
-            }
-        """)
+        self.setWindowTitle("AI News Meme Generator")
+        self.resize(1000, 650)
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
 
         # Sidebar
         self.sidebar = Sidebar()
 
         # Stack
         self.stack = QStackedWidget()
+
 
         # Services
         self.news_service = NewsService()
