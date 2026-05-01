@@ -6,6 +6,7 @@ from ui.pages.home_page import HomePage
 from ui.pages.news_detail_page import NewsDetailPage
 from ui.pages.meme_page import MemePage
 from ui.pages.history_page import HistoryPage
+from ui.pages.web_page import WebPage
 from ui.components.console_widget import ConsoleWidget, QtLogHandler
 
 from services.news_service import NewsService
@@ -58,16 +59,19 @@ class MainWindow(QWidget):
             self.text_service,
             self.image_service,
             self.meme_service,
-            self.show_meme_result
+            self.show_meme_result,
+            self.open_internal_web
         )
         self.meme_page = MemePage()
         self.history_page = HistoryPage()
+        self.web_page = WebPage(self.show_news_detail)
 
         # Add pages to stack
         self.stack.addWidget(self.home_page)
         self.stack.addWidget(self.news_page)
         self.stack.addWidget(self.meme_page)
         self.stack.addWidget(self.history_page)
+        self.stack.addWidget(self.web_page)
 
         content_hbox.addWidget(self.sidebar)
         content_hbox.addWidget(self.stack, 1)
@@ -112,9 +116,16 @@ class MainWindow(QWidget):
         self.history_page.load_history()
         self.stack.setCurrentWidget(self.history_page)
 
+    def show_news_detail(self):
+        self.stack.setCurrentWidget(self.news_page)
+
     def open_news(self, news):
         self.news_page.load_news(news, self.news_service)
         self.stack.setCurrentWidget(self.news_page)
+
+    def open_internal_web(self, url):
+        self.web_page.load_url(url)
+        self.stack.setCurrentWidget(self.web_page)
 
     def show_meme_result(self, meme_path):
         self.show_meme()

@@ -5,13 +5,15 @@ import requests
 import io
 
 class NewsDetailPage(QWidget):
-    def __init__(self, text_service, image_service, meme_service, show_result):
+    def __init__(self, text_service, image_service, meme_service, show_result, view_web_callback):
         super().__init__()
 
         self.text_service = text_service
         self.image_service = image_service
         self.meme_service = meme_service
         self.show_result = show_result
+        self.view_web_callback = view_web_callback
+
         from repository.meme_repository import MemeRepository
         self.meme_repo = MemeRepository()
 
@@ -62,7 +64,8 @@ class NewsDetailPage(QWidget):
     def open_link(self):
         url = self.news.get("url")
         if url:
-            QDesktopServices.openUrl(QUrl(url))
+            self.view_web_callback(url)
+
 
     def load_news(self, news, news_service=None):
         self.news = news
