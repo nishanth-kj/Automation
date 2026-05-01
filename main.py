@@ -3,8 +3,15 @@ import os
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtCore import QLockFile, QDir
 from ui.main_window import MainWindow
+from repository.database.init_db import init_db
 
 def main():
+    # Ensure database is initialized before starting
+    try:
+        init_db()
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+
     app = QApplication(sys.argv)
     
     # Use a lock file in the temporary directory to prevent multiple instances

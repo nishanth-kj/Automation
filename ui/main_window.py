@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QSplitter
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QSplitter, QGraphicsOpacityEffect
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 
 from ui.components.sidebar import Sidebar
 from ui.pages.home_page import HomePage
@@ -8,6 +8,8 @@ from ui.pages.meme_page import MemePage
 from ui.pages.history_page import HistoryPage
 from ui.pages.web_page import WebPage
 from ui.pages.settings_page import SettingsPage
+from ui.pages.chat_page import ChatPage
+from ui.pages.rag_page import RagPage
 from ui.components.console_widget import ConsoleWidget, QtLogHandler
 
 from services.news_service import NewsService
@@ -15,6 +17,8 @@ from services.text_service import TextService
 from services.image_generate_service import ImageGenerateService
 from services.meme_service import MemeService
 from services.websocket_service import WebSocketService
+from repository.setting_repository import SettingRepository
+from utils.theme_manager import ThemeManager
 from utils.logger import logger
 import logging
 
@@ -23,9 +27,11 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("AI News Meme Generator")
+        self.setWindowTitle("AI News Meme Studio")
         self.resize(1200, 850)
+        self.setting_repo = SettingRepository()
 
+        # Layout
         main_vbox = QVBoxLayout(self)
         main_vbox.setContentsMargins(0, 0, 0, 0)
         main_vbox.setSpacing(0)
@@ -39,7 +45,14 @@ class MainWindow(QWidget):
 
         self.sidebar = Sidebar()
         self.stack = QStackedWidget()
+        
+        self.opacity_effect = QGraphicsOpacityEffect(self.stack)
+        self.stack.setGraphicsEffect(self.opacity_effect)
+        self.animation = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.animation.setDuration(400)
+        self.animation.setEasingCurve(QEasingCurve.InOutQuad)
 
+        # Services
         self.news_service = NewsService()
         self.text_service = TextService()
         self.image_service = ImageGenerateService()
@@ -60,6 +73,8 @@ class MainWindow(QWidget):
         self.history_page = HistoryPage()
         self.web_page = WebPage(self.show_news_detail)
         self.settings_page = SettingsPage()
+        self.chat_page = ChatPage()
+        self.rag_page = RagPage()
 
         # Add pages
         self.stack.addWidget(self.home_page)
@@ -68,16 +83,14 @@ class MainWindow(QWidget):
         self.stack.addWidget(self.history_page)
         self.stack.addWidget(self.web_page)
         self.stack.addWidget(self.settings_page)
+        self.stack.addWidget(self.chat_page)
+        self.stack.addWidget(self.rag_page)
 
         content_hbox.addWidget(self.sidebar)
         content_hbox.addWidget(self.stack, 1)
 
         self.console = ConsoleWidget()
-        
-        self.qt_log_handler = QtLogHandler()
-        self.qt_log_handler.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | %(message)s', '%H:%M:%S'))
-        self.qt_log_handler.signal.new_log.connect(self.console.append_log)
-        logger.addHandler(self.qt_log_handler)
+        self.setup_logging()
 
         self.vertical_splitter.addWidget(content_widget)
         self.vertical_splitter.addWidget(self.console)
@@ -86,39 +99,55 @@ class MainWindow(QWidget):
 
         main_vbox.addWidget(self.vertical_splitter)
 
-        # Sidebar actions
+        # Actions
         self.sidebar.home_btn.clicked.connect(self.show_home)
         self.sidebar.meme_btn.clicked.connect(self.show_meme)
         self.sidebar.history_btn.clicked.connect(self.show_history)
+        self.sidebar.chat_btn.clicked.connect(self.show_chat)
+        self.sidebar.rag_btn.clicked.connect(self.show_rag)
         self.sidebar.settings_btn.clicked.connect(self.show_settings)
-        
         self.news_page.back_btn.clicked.connect(self.show_home)
 
+        self.apply_theme()
         self.show_home()
 
-    def show_home(self):
-        self.stack.setCurrentWidget(self.home_page)
+    def setup_logging(self):
+        self.qt_log_handler = QtLogHandler()
+        self.qt_log_handler.setFormatter(logging.Formatter('%H:%M:%S | %(levelname)s | %(message)s'))
+        self.qt_log_handler.signal.new_log.connect(self.console.append_log)
+        logger.addHandler(self.qt_log_handler)
 
-    def show_meme(self):
-        self.stack.setCurrentWidget(self.meme_page)
+    def apply_theme(self):
+        theme = self.setting_repo.get("theme", "dark")
+        if theme == "dark":
+            self.setStyleSheet(ThemeManager.get_dark_theme())
+        else:
+            self.setStyleSheet(ThemeManager.get_light_theme())
 
+    def switch_page(self, widget):
+        self.animation.stop()
+        self.animation.setStartValue(0.0)
+        self.animation.setEndValue(1.0)
+        self.stack.setCurrentWidget(widget)
+        self.animation.start()
+
+    def show_home(self): self.switch_page(self.home_page)
+    def show_meme(self): self.switch_page(self.meme_page)
     def show_history(self):
         self.history_page.load_history()
-        self.stack.setCurrentWidget(self.history_page)
-
-    def show_settings(self):
-        self.stack.setCurrentWidget(self.settings_page)
-
-    def show_news_detail(self):
-        self.stack.setCurrentWidget(self.news_page)
+        self.switch_page(self.history_page)
+    def show_chat(self): self.switch_page(self.chat_page)
+    def show_rag(self): self.switch_page(self.rag_page)
+    def show_settings(self): self.switch_page(self.settings_page)
+    def show_news_detail(self): self.switch_page(self.news_page)
 
     def open_news(self, news):
         self.news_page.load_news(news, self.news_service)
-        self.stack.setCurrentWidget(self.news_page)
+        self.show_news_detail()
 
     def open_internal_web(self, url):
         self.web_page.load_url(url)
-        self.stack.setCurrentWidget(self.web_page)
+        self.switch_page(self.web_page)
 
     def show_meme_result(self, meme_path):
         self.show_meme()
