@@ -17,9 +17,10 @@ class TextService:
         self.model = AutoModelForImageTextToText.from_pretrained(
             self.model_id,
             cache_dir=self.local_path,
-            torch_dtype=torch.float16,
+            dtype=torch.float16,
             device_map="auto"
         )
+
 
     def generate(self, prompt):
         messages = [

@@ -11,9 +11,10 @@ class AiService:
 
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_id,
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+            dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
             device_map="auto"
         )
+
 
     def generate(self, prompt: str) -> str:
         inputs = self.processor(prompt, return_tensors="pt")

@@ -1,3 +1,4 @@
+import os
 from PIL import Image, ImageDraw, ImageFont
 
 class MemeService:
@@ -23,7 +24,20 @@ class MemeService:
         img = Image.open(image_path).convert("RGB")
         draw = ImageDraw.Draw(img)
 
-        font = ImageFont.truetype(self.font_path, self.font_size)
+        # Priority: Local assets -> System fonts -> Default
+        target_font = self.font_path
+        
+        if not os.path.exists(target_font):
+            if os.path.exists(system_font):
+                target_font = system_font
+        
+        try:
+            if os.path.exists(target_font):
+                font = ImageFont.truetype(target_font, self.font_size)
+            else:
+                font = ImageFont.load_default()
+        except Exception:
+            font = ImageFont.load_default()
 
         # Top text
         self._draw_centered(draw, top_text, 20, img.width, font)
