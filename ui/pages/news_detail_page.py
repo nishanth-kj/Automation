@@ -12,6 +12,8 @@ class NewsDetailPage(QWidget):
         self.image_service = image_service
         self.meme_service = meme_service
         self.show_result = show_result
+        from repository.meme_repository import MemeRepository
+        self.meme_repo = MemeRepository()
 
         layout = QVBoxLayout()
 
@@ -143,8 +145,12 @@ class NewsDetailPage(QWidget):
             # 3. MEME
             meme_path = self.meme_service.create_meme(img_path, top, bottom)
 
+            # 4. SAVE TO DB
+            self.meme_repo.create(title, top, bottom, meme_path)
+
             self.status_label.setText("✨ Meme created successfully!")
             self.show_result(meme_path)
+
 
         except Exception as e:
             self.status_label.setText(f"❌ Error: {str(e)}")

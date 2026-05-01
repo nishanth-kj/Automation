@@ -12,8 +12,11 @@ class MemePage(QWidget):
         self.text_service = TextService()
         self.meme_service = MemeService()
         self.image_service = ImageGenerateService()
+        from repository.meme_repository import MemeRepository
+        self.meme_repo = MemeRepository()
 
         layout = QVBoxLayout()
+
 
         self.input = QLineEdit()
         self.input.setPlaceholderText("Enter meme topic")
@@ -63,7 +66,11 @@ class MemePage(QWidget):
             # 3. Create meme
             meme_path = self.meme_service.create_meme(img_path, top, bottom)
 
+            # 4. Save to DB
+            self.meme_repo.create(topic, top, bottom, meme_path)
+
             self.show_result(meme_path)
+
             self.status_label.setText("✅ Meme generated!")
 
         except Exception as e:
