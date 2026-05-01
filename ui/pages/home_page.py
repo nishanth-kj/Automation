@@ -20,12 +20,20 @@ class HomePage(QWidget):
         self.refresh_news()
 
     def refresh_news(self):
+        # Clear existing news
+        for i in reversed(range(self.news_layout.count())): 
+            self.news_layout.itemAt(i).widget().setParent(None)
+
         try:
-            news = self.news_service.fetch("technology", limit=10)
+            # Fetch general trending news instead of just technology
+            news = self.news_service.fetch("trending", limit=20)
             for item in news:
-                btn = QPushButton(item["title"])
+
+                source = item.get("source", "News")
+                btn = QPushButton(f"[{source}] {item['title']}")
                 btn.clicked.connect(lambda _, n=item: self.open_news_callback(n))
                 self.news_layout.addWidget(btn)
+
         except Exception as e:
             self.news_layout.addWidget(QLabel(f"Error: {str(e)}"))
 
