@@ -1,14 +1,16 @@
+from diffusers import AutoPipelineForText2Image
 import torch
-from diffusers import StableDiffusionPipeline
 
 class ImageGenerateService:
     def __init__(self, model_path="models/z_image_turbo_bf16"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.pipe = StableDiffusionPipeline.from_single_file(
+        # Using AutoPipeline might help detect the correct model architecture
+        self.pipe = AutoPipelineForText2Image.from_single_file(
             f"{model_path}/z_image_turbo_bf16.safetensors",
-            torch_dtype=torch.float16 if self.device == "cuda" else torch.float32
+            dtype=torch.float16 if self.device == "cuda" else torch.float32
         )
+
 
         self.pipe = self.pipe.to(self.device)
 
