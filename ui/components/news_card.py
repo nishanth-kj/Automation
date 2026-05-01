@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QCheckBox
+from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt
 
 class NewsCard(QFrame):
@@ -7,43 +8,46 @@ class NewsCard(QFrame):
         self.news = news
         self.view_callback = view_callback
         
+        self.setFixedHeight(110)
         self.setObjectName("news_card")
-        self.setFixedHeight(100)
         
         self.setStyleSheet("""
             QFrame#news_card {
-                background-color: #000;
-                border-bottom: 1px solid #111;
-                border-radius: 0px;
-                margin: 0px;
+                background-color: #18181b;
+                border: 1px solid #27272a;
+                border-radius: 8px;
+                margin-bottom: 5px;
             }
             QFrame#news_card:hover {
-                background-color: #050505;
-                border-bottom: 1px solid #333;
+                border: 1px solid #3b82f6;
+                background-color: #1c1c20;
             }
             QLabel#title {
                 font-size: 14px;
                 font-weight: 600;
                 color: #fff;
-                border: none;
             }
             QLabel#source {
-                font-size: 9px;
-                font-weight: 800;
-                color: #444;
-                border: none;
-                text-transform: uppercase;
-                letter-spacing: 1px;
+                font-size: 11px;
+                color: #3b82f6;
+                font-weight: 500;
             }
         """)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(20, 10, 20, 10)
-        layout.setSpacing(20)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(15)
         
         # Selection
         self.checkbox = QCheckBox()
         layout.addWidget(self.checkbox)
+
+        # Thumbnail
+        self.img_label = QLabel()
+        self.img_label.setFixedSize(100, 70)
+        self.img_label.setStyleSheet("background-color: #09090b; border-radius: 4px;")
+        self.img_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.img_label)
 
         # Content
         text_layout = QVBoxLayout()
@@ -62,23 +66,9 @@ class NewsCard(QFrame):
         
         layout.addLayout(text_layout, 1)
 
-        # Action
-        self.view_btn = QPushButton("OPEN")
-        self.view_btn.setFixedSize(70, 30)
-        self.view_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #fff;
-                color: #000;
-                font-size: 9px;
-                font-weight: 900;
-                border-radius: 0px;
-            }
-            QPushButton:hover {
-                background-color: #000;
-                color: #fff;
-                border: 1px solid #fff;
-            }
-        """)
+        # View
+        self.view_btn = QPushButton("View")
+        self.view_btn.setFixedSize(60, 32)
         self.view_btn.clicked.connect(lambda: self.view_callback(self.news))
         layout.addWidget(self.view_btn)
 
