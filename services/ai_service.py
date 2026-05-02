@@ -51,6 +51,18 @@ class AiService:
                 return "My favorite color is blue, as deep as the ocean's hue."
             return f"Error: Could not reach LM Studio v1 API. ({str(e)})"
 
+    def list_models(self) -> list:
+        """Fetch available models from LM Studio"""
+        try:
+            response = requests.get(f"{self.lm_studio_url}/models", timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            # Standard OpenAI-style response: {"data": [{"id": "..."}, ...]}
+            return [m["id"] for m in data.get("data", [])]
+        except Exception as e:
+            logger.error(f"Failed to fetch models from LM Studio: {e}")
+            return ["google/gemma-4-e4b"] # Fallback
+
     def chat(self, model: str, system_prompt: str, input_text: str) -> str:
         response_text = self.generate(system_prompt, input_text, model=model)
         

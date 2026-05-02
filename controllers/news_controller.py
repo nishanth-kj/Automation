@@ -21,7 +21,7 @@ async def websocket_scraper(websocket: WebSocket):
 async def get_news(page: int = 0, size: int = 20, sort_by: str = "newest", sort_order: str = "desc"):
     # Controller -> Service only
     data = news_service.get_all(page=page, size=size, sort_by=sort_by, sort_order=sort_order)
-    return ApiResponse.success(data)
+    return ApiResponse.success(data.to_dict())
 
 @router.post("/refresh")
 async def refresh_news(background_tasks: BackgroundTasks, query: str = "trending", limit: int = 20):

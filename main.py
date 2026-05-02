@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from controllers import news_controller, meme_controller, rag_controller, ai_controller, chat_controller
+from controllers import news_controller, meme_controller, ai_controller, chat_controller, system_controller
 from utils.exception.api_exception import ApiException
 from utils.api_response import ApiResponse
 from utils.contants.error_code import ErrorCode
@@ -36,9 +36,9 @@ app.add_middleware(
 # Include Routers
 app.include_router(news_controller.router, prefix="/api/news", tags=["News"])
 app.include_router(meme_controller.router, prefix="/api/meme", tags=["Meme"])
-app.include_router(rag_controller.router, prefix="/api/rag", tags=["RAG"])
 app.include_router(ai_controller.router, prefix="/api/ai", tags=["AI"])
 app.include_router(chat_controller.router, prefix="/api/v1", tags=["Chat"])
+app.include_router(system_controller.router, prefix="/api/system", tags=["System"])
 
 @app.exception_handler(ApiException)
 async def api_exception_handler(request: Request, exc: ApiException):
