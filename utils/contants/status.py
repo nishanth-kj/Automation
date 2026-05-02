@@ -6,11 +6,9 @@ class Status(enum.Enum):
     PENDING = ("Pending", 3)
     APPROVED = ("Approved", 4)
     REJECTED = ("Rejected", 5)
-    ERROR = ("Error", 6)
     DELETED = ("Deleted", 7)
+    ERROR = ("Error", 6)
 
     def __init__(self, label, code):
-
-
         self.label = label
         self.code = code

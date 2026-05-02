@@ -1,61 +1,52 @@
 # AI News Meme Studio
 
-AI News Meme Studio is a cutting-edge desktop application that transforms trending technology news into viral memes using advanced AI models. Built with **PySide6**, **Gemma 4**, and **Flux**, it provides a seamless workflow from news discovery to meme creation.
+AI News Meme Studio is a cutting-edge platform that transforms trending technology news into viral memes using advanced AI models. It features a robust **FastAPI** backend, a high-performance **PySide6** desktop interface, and a modern **Next.js** web dashboard.
 
 ## 🚀 Features
 
--   **Trending News Feed**: Automatically scrapes and displays the latest technology news from Google News.
+-   **Trending News Feed**: Automatically scrapes the latest technology news from Google News, Reddit, Bing, and DuckDuckGo.
 -   **AI News Analysis**: Uses **Gemma 4** to analyze headlines and generate clever, context-aware meme captions.
--   **High-Fidelity Image Generation**: Leverages the **Flux-based Z-Image** model to generate stunning visuals tailored to the news topic.
--   **Automated Compositing**: Overlays generated text onto images with professional typography and formatting.
--   **Custom Meme Generator**: Create your own memes from any topic using the same AI-powered engine.
--   **Meme Gallery**: Keep track of all your generated creations with local database persistence.
+-   **High-Fidelity Image Generation**: Leverages the **Flux-based Z-Image** model to generate stunning visuals.
+-   **RAG (Retrieval-Augmented Generation)**: Semantic search over news articles using vector embeddings.
+-   **Dual Interface**: Access the studio via the **PySide6 Desktop App** or the **Next.js Web App**.
+-   **Standardized API**: A clean hub with strict constants for status and errors.
 
 ## 🛠️ Architecture
 
-The project follows a modular 3-layer architecture:
--   **UI Layer**: PySide6 components and pages.
--   **Services Layer**: Business logic for AI generation, news scraping, and image processing.
--   **Repository Layer**: Data persistence for memes and metadata.
+The project follows a decoupled, service-oriented architecture:
+-   **Frontend**: Next.js (Web) and PySide6 (Desktop).
+-   **Backend**: FastAPI serving as the central controller hub.
+-   **Controllers**: Modular API endpoints for News, Memes, RAG, and AI.
+-   **Services**: Business logic for AI generation, news scraping, and image processing.
+-   **Repository**: SQLAlchemy-based data persistence (SQLite) with semantic search support.
+-   **Constants**: Specialized modules for `api_status`, `error_code`, `error_message`, and `status`.
 
-Detailed system documentation can be found in [Agent.md](./Agent.md).
+## ⚙️ Installation & Running
 
-## 📋 Prerequisites
-
--   **Python 3.12+**
--   **CUDA-compatible GPU** (Minimum 16GB VRAM recommended for optimal performance).
--   **UV** (Python package manager).
-
-## ⚙️ Installation
-
-1.  **Clone the repository**:
+1.  **Start the API Backend**:
     ```bash
-    git clone https://github.com/nishanth-kj/Automation.git
-    cd Automation
+    python run_api.py
+    ```
+2.  **Start the Web Interface**:
+    ```bash
+    cd web && npm run dev
     ```
 
-2.  **Install dependencies**:
-    ```bash
-    uv pip install -r pyproject.toml
-    ```
+## 📝 API Standards
 
-3.  **Download Models**:
-    Place the required models in the `models/` directory:
-    -   `gemma-4-E2B-it`
-    -   `z_image_turbo_bf16`
-
-4.  **Run the Application**:
-    ```bash
-    uv run main.py
-    ```
-
-## 📝 Configuration
-
--   **Fonts**: The application looks for `arial.ttf` in `assets/fonts/`. It will fallback to the system font if missing.
--   **Database**: Uses a local SQLite database (`memes.db`) initialized on first run.
+The API uses a unified three-field response structure:
+```json
+{
+  "status": 1,   // 1 for Success, 0 for Error (from api_status.py)
+  "error": {
+    "code": 200,   // Integer code (200 for Success, e.g., 404 for Not Found)
+    "message": "Success", // Human readable (from error_message.py)
+    "field": null // Optional validation field
+  },
+  "data": { ... } // Payload
+}
+```
 
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-

@@ -1,37 +1,63 @@
-import sys
-import os
-from PySide6.QtWidgets import QApplication, QMessageBox
-from PySide6.QtCore import QLockFile, QDir
-from ui.main_window import MainWindow
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from controllers import news_controller, meme_controller, rag_controller, ai_controller
+from utils.exception.api_exception import ApiException
+from utils.api_response import ApiResponse
+from utils.contants.error_code import ErrorCode
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from repository.database.init_db import init_db
 
-def main():
-    # Ensure database is initialized before starting
+app = FastAPI(
+    title="AI News Meme Studio API",
+    description="Backend API for managing news, generating memes, and RAG operations.",
+    version="1.0.0"
+)
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
     try:
         init_db()
     except Exception as e:
         print(f"Error initializing database: {e}")
 
-    app = QApplication(sys.argv)
-    
-    # Use a lock file in the temporary directory to prevent multiple instances
-    lock_path = os.path.join(QDir.tempPath(), "ai_news_meme_studio.lock")
-    lock_file = QLockFile(lock_path)
-    
-    if not lock_file.tryLock(100):
-        # Could not lock, another instance is probably running
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
-        msg.setText("Another instance of AI News Meme Studio is already running.")
-        msg.setWindowTitle("Already Running")
-        msg.exec()
-        sys.exit(1)
+# Configure CORS for Next.js frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    window = MainWindow()
-    window.show()
-    
-    # Keep the lock_file object alive as long as the app is running
-    sys.exit(app.exec())
+# Include Routers
+app.include_router(news_controller.router, prefix="/api/news", tags=["News"])
+app.include_router(meme_controller.router, prefix="/api/meme", tags=["Meme"])
+app.include_router(rag_controller.router, prefix="/api/rag", tags=["RAG"])
+app.include_router(ai_controller.router, prefix="/api/ai", tags=["AI"])
 
-if __name__ == "__main__":
-    main()
+@app.exception_handler(ApiException)
+async def api_exception_handler(request: Request, exc: ApiException):
+    return JSONResponse(
+        status_code=400,
+        content=ApiResponse.fail(
+            error_code=exc.error_code,
+            message=exc.message,
+            field=exc.fields
+        ).model_dump()
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content=ApiResponse.fail(
+            error_code=ErrorCode.INTERNAL_SERVER_ERROR,
+            message=str(exc)
+        ).model_dump()
+    )
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to AI News Meme Studio API", "status": "online"}
