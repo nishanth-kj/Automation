@@ -14,6 +14,11 @@ class AiRequest(BaseModel):
     prompt: str
     system_prompt: Optional[str] = "You are a helpful AI assistant."
 
+@router.get("/models")
+async def list_models():
+    result = ai_service.list_models()
+    return ApiResponse.success(result)
+
 @router.post("/generate")
 async def generate_text(request: AiRequest):
     result = ai_service.generate(

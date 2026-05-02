@@ -1,162 +1,181 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NewsItem } from "@/types/api";
+import { Sidebar } from "@/components/layout/sidebar";
+import { NewsFeed } from "@/components/studio/news-feed";
+import { ChatInterface } from "@/components/studio/chat-interface";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Send, Bot, User, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Settings2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+export default function MemeStudio() {
+  const [activeTab, setActiveTab] = useState("news");
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  
+  // Scraper State
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeProgress, setScrapeProgress] = useState<string[]>([]);
+  const [pendingNews, setPendingNews] = useState<NewsItem[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  
+  // Chat State
+  const [messages, setMessages] = useState<{role: string, content: string}[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
-export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
+  // WebSocket for Scraper
   useEffect(() => {
-    if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    const ws = new WebSocket("ws://localhost:5000/ws/scraper");
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.status === "starting") {
+        setIsScraping(true);
+        setScrapeProgress(["Starting scraper..."]);
+        setPendingNews([]);
+      } else if (data.status === "progress") {
+        setScrapeProgress(prev => [...prev, data.message]);
+      } else if (data.status === "pending") {
+        setPendingNews(data.items);
+      } else if (data.status === "complete") {
+        setIsScraping(false);
+        setScrapeProgress(prev => [...prev, "✓ Scrape complete!"]);
+        fetchNews();
       }
-    }
-  }, [messages, isLoading]);
+    };
+    return () => ws.close();
+  }, []);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-
+  const fetchNews = async () => {
     try {
-      const data = await api.chat.sendMessage({
-        model: "google/gemma-4-e4b",
-        system_prompt: "You answer only in rhymes.",
-        input: input,
-      });
-
-      if (data.status === 1) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.data.response }]);
-      } else {
-        throw new Error(data.error?.message || "AI Error");
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      setMessages((prev) => [...prev, { role: "assistant", content: "Oops! Something went wrong while connecting to the AI." }]);
-    } finally {
-      setIsLoading(false);
+      const res = await api.news.list();
+      if (res.status === 1) setNews(res.data.content);
+    } catch (e) {
+      toast.error("Failed to load news feed");
     }
   };
 
+  useEffect(() => { fetchNews(); }, []);
+
+  const startScraper = async () => {
+    try {
+      await api.news.refresh();
+      toast.info("Scraper started in background");
+    } catch (e) {
+      toast.error("Failed to start scraper");
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!chatInput.trim() || isChatLoading) return;
+    
+    const userMsg = { role: "user", content: chatInput };
+    setMessages(prev => [...prev, userMsg]);
+    setChatInput("");
+    setIsChatLoading(true);
+
+    const systemPrompt = selectedNews 
+      ? `You are an AI assistant helping to create a meme. Context News: "${selectedNews.title}" Content: "${selectedNews.content || ''}"`
+      : "You are a helpful AI assistant.";
+
+    try {
+      const res = await api.chat.sendMessage({
+        model: "gemma",
+        system_prompt: systemPrompt,
+        input: chatInput
+      });
+      if (res.status === 1) {
+        setMessages(prev => [...prev, { role: "assistant", content: res.data.response }]);
+        if (res.data.response.toLowerCase().includes("generate meme") && selectedNews) {
+          generateMeme(selectedNews.news_id);
+        }
+      }
+    } catch (e) {
+      toast.error("AI connection lost");
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const generateMeme = async (newsId: number) => {
+    toast.promise(api.meme.generate(newsId), {
+      loading: 'ComfyUI is rendering your meme...',
+      success: 'Meme generated successfully!',
+      error: 'ComfyUI failed to generate image',
+    });
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#fafafa] dark:bg-[#050505] p-4 md:p-8 font-sans">
-      <Card className="w-full max-w-3xl h-[85vh] flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border-zinc-200/50 dark:border-zinc-800/50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl overflow-hidden rounded-[2rem]">
-        <CardHeader className="border-b border-zinc-100/50 dark:border-zinc-800/50 py-4 px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center">
-                <Bot className="w-6 h-6 text-zinc-100 dark:text-zinc-900" />
-              </div>
-              <div>
-                <CardTitle className="text-lg font-semibold tracking-tight">Gemma AI</CardTitle>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Online & Ready to Rhyme
-                </p>
-              </div>
-            </div>
-            <Sparkles className="w-5 h-5 text-zinc-400" />
-          </div>
-        </CardHeader>
-        
-        <CardContent className="flex-1 overflow-hidden p-0">
-          <ScrollArea ref={scrollRef} className="h-full px-6 py-6">
-            <div className="space-y-6 max-w-2xl mx-auto">
-              {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4">
-                  <div className="p-4 rounded-full bg-zinc-50 dark:bg-zinc-800/50">
-                    <Bot className="w-12 h-12 text-zinc-300" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-medium text-zinc-900 dark:text-zinc-100">Welcome to Gemma Chat</h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-[280px]">
-                      Ask me anything, and I'll respond in poetic rhymes.
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {messages.map((m, i) => (
-                <div 
-                  key={i} 
-                  className={`flex items-start gap-3 ${m.role === "user" ? "flex-row-reverse" : "flex-row"} animate-in fade-in slide-in-from-bottom-2 duration-300`}
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${m.role === "user" ? "bg-zinc-100 dark:bg-zinc-800" : "bg-zinc-900 dark:bg-zinc-100"}`}>
-                    {m.role === "user" ? <User className="w-4 h-4 text-zinc-600 dark:text-zinc-300" /> : <Bot className="w-4 h-4 text-zinc-100 dark:text-zinc-900" />}
-                  </div>
-                  <div className={`group relative max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    m.role === "user" 
-                      ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 rounded-tr-none" 
-                      : "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50 rounded-tl-none border border-zinc-200/50 dark:border-zinc-700/50"
-                  }`}>
-                    {m.content}
-                  </div>
-                </div>
-              ))}
-              
-              {isLoading && (
-                <div className="flex items-start gap-3 animate-in fade-in duration-300">
-                  <div className="w-8 h-8 rounded-full bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-zinc-100 dark:text-zinc-900" />
-                  </div>
-                  <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl rounded-tl-none px-4 py-3 border border-zinc-200/50 dark:border-zinc-700/50">
-                    <div className="flex gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+    <div className="min-h-screen bg-[#fafafa] dark:bg-[#050505] flex flex-col font-sans">
+      <header className="h-16 border-b border-zinc-100 dark:border-zinc-900 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-30 px-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="font-bold text-lg tracking-tight">MemeStudio</h1>
+        </div>
+        <div className="flex items-center gap-4">
+          {selectedNews && (
+            <Badge variant="secondary" className="gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 animate-in fade-in zoom-in">
+              <CheckCircle2 className="w-3 h-3" /> Selected: {selectedNews.title.slice(0, 30)}...
+            </Badge>
+          )}
+          <Button variant="outline" size="sm" className="rounded-xl"><Settings2 className="w-4 h-4" /></Button>
+        </div>
+      </header>
+
+      <main className="flex-1 flex overflow-hidden">
+        <Sidebar 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          isScraping={isScraping} 
+          onRefresh={startScraper} 
+        />
+
+        <div className="flex-1 overflow-hidden relative flex flex-col">
+          {isScraping && (
+            <div className="absolute top-4 left-4 right-4 z-20 animate-in slide-in-from-top-4">
+              <Card className="bg-zinc-900/90 text-zinc-100 border-none backdrop-blur shadow-2xl">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Loader2 className="animate-spin text-emerald-400" />
+                    <div>
+                      <p className="text-sm font-medium">Scraping...</p>
+                      <p className="text-xs text-zinc-400">{scrapeProgress[scrapeProgress.length - 1]}</p>
                     </div>
                   </div>
-                </div>
+                  {pendingNews.length > 0 && <Badge className="bg-emerald-500/20 text-emerald-400">{pendingNews.length} Found</Badge>}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <ScrollArea className="flex-1 p-8">
+            <div className="max-w-5xl mx-auto">
+              {activeTab === 'news' ? (
+                <NewsFeed 
+                  news={news} 
+                  pendingNews={pendingNews} 
+                  selectedNews={selectedNews}
+                  onSelect={(item) => { setSelectedNews(item); setActiveTab('chat'); }}
+                  onGenerateMeme={generateMeme}
+                />
+              ) : (
+                <ChatInterface 
+                  messages={messages}
+                  input={chatInput}
+                  setInput={setChatInput}
+                  isLoading={isChatLoading}
+                  onSendMessage={sendMessage}
+                  selectedNews={selectedNews}
+                  onGenerateMeme={generateMeme}
+                />
               )}
             </div>
           </ScrollArea>
-        </CardContent>
-        
-        <CardFooter className="p-6 border-t border-zinc-100/50 dark:border-zinc-800/50">
-          <form
-            onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
-            className="flex w-full items-center gap-3 max-w-2xl mx-auto"
-          >
-            <div className="relative flex-1">
-              <Input
-                placeholder="Type your message..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={isLoading}
-                className="w-full h-12 pl-4 pr-12 rounded-2xl border-zinc-200/50 dark:border-zinc-800/50 bg-zinc-50/50 dark:bg-zinc-950/50 focus-visible:ring-1 focus-visible:ring-zinc-400 focus-visible:border-zinc-400 transition-all"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Button 
-                  type="submit" 
-                  size="icon"
-                  disabled={isLoading || !input.trim()} 
-                  className="w-8 h-8 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-zinc-100 dark:text-zinc-900 transition-all duration-200"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </form>
-        </CardFooter>
-      </Card>
+        </div>
+      </main>
     </div>
   );
 }

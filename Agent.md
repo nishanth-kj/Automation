@@ -6,51 +6,33 @@ AI News Meme Studio is a high-fidelity application platform that automates the c
 ## Technology Stack
 - **API Framework**: FastAPI (Uvicorn)
 - **Web Frontend**: Next.js (React, TailwindCSS)
-- **Desktop UI**: PySide6 (Qt for Python)
 - **AI Models**: 
   - **Text (Gemma)**: Powered by **LM Studio** (OpenAI-compatible API on port 1234).
   - **Images**: Powered by **ComfyUI** (REST API on port 8188).
 - **Standardized Communication**: Unified `ApiResponse` model with nested `ErrorDetail`.
 
-## Application Architecture
+## Development Guidelines (Strict)
 
-### 1. Controller Layer (`/controllers`)
-- **NewsController**, **MemeController**, **RagController**, **AiController**, **ChatController**.
-- Controllers must strictly use **Request Models** from `/models/requests`.
+### 1. Tiered Architecture (MANDATORY)
+Violation of this unidirectional flow is a critical failure. No shortcuts are allowed.
 
-### 2. Services Layer (`/services`)
-- **AiService**: Singleton service for all AI interactions. Handles DB persistence via repositories.
-- **NewsService**, **TextService**, **ImageGenerateService**, **RagService**, **MemeService**.
+**Flow**: `Controller` → `Service` → `Repository` → `Database`.
 
-### 3. Repository Layer (`/repository`)
-- **ChatRepository**: Persistence for chat interactions.
-- **NewsRepository**, **MemeRepository**, **RagRepository**, **SettingRepository**.
+1.  **Controller Layer (`/controllers`)**:
+    - **MUST ONLY** call methods from the **Service Layer**.
+    - **NEVER** call Repository methods directly.
+    - Handles HTTP logic and `ApiResponse` wrapping.
+2.  **Service Layer (`/services`)**:
+    - Contains all business logic, orchestration, and AI integrations.
+    - **MUST ONLY** call methods from the **Repository Layer** for database access.
+3.  **Repository Layer (`/repository`)**:
+    - Handles raw database operations using SQLAlchemy.
+    - Returns plain dictionaries or data objects to the service layer.
 
-### 4. Utility & Constants Layer (`/utils`)
-- **api_response.py**: Root response model (`status`, `error`, `data`).
-- **contants/**: `api_status.py`, `error_code.py`, `error_message.py`, `status.py`.
-
-## Development Guidelines - Adding New APIs
-
-When adding new endpoints, follow the project's strict tiered architecture:
-
-1. **Define the Request Model**: Create a new file in `models/requests/` (e.g., `chat_request.py`).
-   ```python
-   class ChatRequest(BaseModel):
-       model: str
-       system_prompt: str
-       input: str
-   ```
-2. **Implement Logic in Service Layer**: Add methods to `/services`. 
-   - **DB Persistence**: Services should use the Repository layer to store/retrieve data.
-   - Example: `AiService.chat()` calls `ChatRepository.save()`.
-3. **Create a Controller**: Define the router in `/controllers`. 
-   - **Strict Rule**: Import the request model and pass data to the service.
-   - Return `ApiResponse.success(data)`.
-4. **Register the Router**: Include the new controller in `main.py`.
-
-### Example: Chat API (`/api/v1/chat`)
-- **Flow**: `ChatController` -> `ChatRequest` (from `/models/requests`) -> `AiService.chat()` -> `ChatRepository` -> `ApiResponse`.
+### 2. API Standard
+- Use `ApiResponse` for all returns.
+- If `status == 1`, `error` must be `null`.
+- Controllers must be thin; logic belongs in Services.
 
 ---
 *Updated: 2026-05-02*

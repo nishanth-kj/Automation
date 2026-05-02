@@ -65,7 +65,21 @@ class NewsRepository:
             self.db.commit()
 
     def get_by_id(self, news_id):
-        return self.db.query(News).filter(News.news_id == news_id).first()
+        obj = self.db.query(News).filter(News.news_id == news_id).first()
+        if not obj:
+            return None
+        return {
+            "news_id": obj.news_id,
+            "title": obj.title,
+            "url": obj.url,
+            "source": obj.source,
+            "image_url": obj.image_url,
+            "content": obj.content,
+            "category": obj.category,
+            "status": obj.status,
+            "created_at": obj.created_at,
+            "updated_at": obj.updated_at
+        }
 
     def get_all(self, page=0, size=20, sort_by="newest", sort_order="desc"):
         logger.info(f"DB: Fetching news page {page} with size {size}")
@@ -84,5 +98,22 @@ class NewsRepository:
         else:
             query = query.order_by(col.asc())
             
-        content = query.limit(size).offset(page * size).all()
+        content_objs = query.limit(size).offset(page * size).all()
+        
+        # Convert to dicts for Pydantic serialization
+        content = []
+        for obj in content_objs:
+            content.append({
+                "news_id": obj.news_id,
+                "title": obj.title,
+                "url": obj.url,
+                "source": obj.source,
+                "image_url": obj.image_url,
+                "content": obj.content,
+                "category": obj.category,
+                "status": obj.status,
+                "created_at": obj.created_at,
+                "updated_at": obj.updated_at
+            })
+            
         return Page.create(content, page, size, total_elements)

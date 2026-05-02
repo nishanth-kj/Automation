@@ -4,8 +4,11 @@ from controllers import news_controller, meme_controller, rag_controller, ai_con
 from utils.exception.api_exception import ApiException
 from utils.api_response import ApiResponse
 from utils.contants.error_code import ErrorCode
-from fastapi import Request
+from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from typing import List
+
+from utils.websocket_manager import manager
 from repository.database.init_db import init_db
 
 app = FastAPI(
@@ -59,6 +62,15 @@ async def general_exception_handler(request: Request, exc: Exception):
         ).model_dump()
     )
 
+
+@app.websocket("/ws/scraper")
+async def websocket_scraper(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 @app.get("/")
 async def root():
