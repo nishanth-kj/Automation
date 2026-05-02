@@ -33,8 +33,9 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-mono", jetbrainsMono.variable)}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster />
       </body>

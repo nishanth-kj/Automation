@@ -31,7 +31,7 @@ async def generate_meme(request: MemeRequest):
     bottom = request.bottom_text
     
     if not top or not bottom:
-        prompt = f"Write a funny meme caption for this news: {news.title}"
+        prompt = f"Write a funny meme caption for this news: {news['title']}"
         generated_text = text_service.generate(prompt)
         parts = generated_text.split("\n")
         top = top or parts[0]
@@ -39,7 +39,7 @@ async def generate_meme(request: MemeRequest):
 
     image_path = "temp_image.png"
     # Generate image based on news title
-    image_service.generate(f"A meme image for: {news.title}", output_path=image_path)
+    image_service.generate(f"A meme image for: {news['title']}", output_path=image_path)
 
     output_path = f"assets/memes/meme_{request.news_id}.png"
     os.makedirs("assets/memes", exist_ok=True)

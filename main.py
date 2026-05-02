@@ -8,7 +8,6 @@ from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from typing import List
 
-from utils.websocket_manager import manager
 from repository.database.init_db import init_db
 
 app = FastAPI(
@@ -63,15 +62,6 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-@app.websocket("/ws/scraper")
-async def websocket_scraper(websocket: WebSocket):
-    await manager.connect(websocket)
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-
-@app.get("/")
+@app.post("/")
 async def root():
     return {"message": "Welcome to AI News Meme Studio API", "status": "online"}
