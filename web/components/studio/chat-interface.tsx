@@ -16,23 +16,35 @@ interface ChatInterfaceProps {
   onSendMessage: () => void;
   selectedNews: NewsItem | null;
   onGenerateMeme: (id: number) => void;
+  selectedModel: string;
+  setSelectedModel: (val: string) => void;
 }
 
 export function ChatInterface({ 
-  messages, input, setInput, isLoading, onSendMessage, selectedNews, onGenerateMeme 
+  messages, input, setInput, isLoading, onSendMessage, selectedNews, onGenerateMeme,
+  selectedModel, setSelectedModel
 }: ChatInterfaceProps) {
+  const models = ["google/gemma-4-e4b", "gemma-4-e4b-it", "qwen-2.5-7b"];
+
   return (
     <div className="max-w-3xl mx-auto h-[75vh] flex flex-col animate-in fade-in duration-500">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Studio Chat</h2>
-          <p className="text-sm text-zinc-500">
-            {selectedNews ? `Chatting about: ${selectedNews.source}` : "Select news from the feed to get started."}
-          </p>
+          <h2 className="text-xl font-bold">Studio Chat</h2>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Model:</span>
+            <select 
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="text-xs bg-transparent border-none font-medium text-zinc-600 focus:ring-0 p-0 cursor-pointer hover:text-zinc-950"
+            >
+              {models.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
         </div>
         {selectedNews && (
-          <Button variant="outline" className="rounded-xl gap-2" onClick={() => onGenerateMeme(selectedNews.news_id)}>
-            <ImageIcon className="w-4 h-4" /> Generate Meme
+          <Button variant="outline" size="sm" className="rounded-lg gap-2 border-zinc-200" onClick={() => onGenerateMeme(selectedNews.news_id)}>
+            <ImageIcon className="w-3 h-3" /> Generate
           </Button>
         )}
       </div>

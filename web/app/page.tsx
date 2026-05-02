@@ -22,6 +22,7 @@ export default function MemeStudio() {
   const [activeTab, setActiveTab] = useState("home");
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [showConsole, setShowConsole] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("google/gemma-4-e4b");
   
   // Scraper State
   const [isScraping, setIsScraping] = useState(false);
@@ -90,7 +91,7 @@ export default function MemeStudio() {
 
     try {
       const res = await api.chat.sendMessage({
-        model: "gemma",
+        model: selectedModel,
         system_prompt: systemPrompt,
         input: chatInput
       });
@@ -116,21 +117,19 @@ export default function MemeStudio() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] dark:bg-[#050505] flex flex-col font-sans">
-      <header className="h-16 border-b border-zinc-100 dark:border-zinc-900 bg-white/80 dark:bg-black/80 backdrop-blur-xl sticky top-0 z-30 px-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-zinc-900 dark:bg-white rounded-lg flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-white dark:text-zinc-900" />
-          </div>
-          <h1 className="font-bold text-lg tracking-tight">MemeStudio</h1>
+    <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col font-sans">
+      <header className="h-14 border-b border-zinc-100 dark:border-zinc-900 bg-white dark:bg-black sticky top-0 z-30 px-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-zinc-900 dark:text-white" />
+          <h1 className="font-semibold text-base tracking-tight">MemeStudio</h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {selectedNews && (
-            <Badge variant="secondary" className="gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 animate-in fade-in zoom-in border-emerald-100">
-              <CheckCircle2 className="w-3 h-3" /> {selectedNews.title.slice(0, 30)}...
+            <Badge variant="outline" className="text-[10px] font-medium border-zinc-200">
+              {selectedNews.title.slice(0, 30)}...
             </Badge>
           )}
-          <Button variant="outline" size="sm" className="rounded-xl border-zinc-200 dark:border-zinc-800" onClick={() => setActiveTab('settings')}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setActiveTab('settings')}>
             <Settings2 className="w-4 h-4" />
           </Button>
         </div>
@@ -146,26 +145,19 @@ export default function MemeStudio() {
           setShowConsole={setShowConsole}
         />
 
-        <div className="flex-1 overflow-hidden relative flex flex-col">
+        <div className="flex-1 overflow-hidden relative flex flex-col bg-zinc-50/30">
           {isScraping && (
-            <div className="absolute top-4 left-4 right-4 z-20 animate-in slide-in-from-top-4">
-              <Card className="bg-zinc-900/90 text-zinc-100 border-none backdrop-blur shadow-2xl">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Loader2 className="animate-spin text-emerald-400" />
-                    <div>
-                      <p className="text-sm font-medium">Scraping...</p>
-                      <p className="text-xs text-zinc-400">{scrapeProgress[scrapeProgress.length - 1]}</p>
-                    </div>
-                  </div>
-                  {pendingNews.length > 0 && <Badge className="bg-emerald-500/20 text-emerald-400">{pendingNews.length} Found</Badge>}
-                </CardContent>
-              </Card>
+            <div className="p-4 bg-zinc-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                <span className="text-xs font-medium">{scrapeProgress[scrapeProgress.length - 1]}</span>
+              </div>
+              {pendingNews.length > 0 && <span className="text-[10px] font-bold">{pendingNews.length} FOUND</span>}
             </div>
           )}
 
-          <ScrollArea className="flex-1 p-8">
-            <div className="max-w-6xl mx-auto">
+          <ScrollArea className="flex-1 p-6">
+            <div className="max-w-5xl mx-auto">
               {activeTab === 'home' && <HomeDashboard news={news} onNavigate={setActiveTab} />}
               
               {activeTab === 'news' && (
@@ -187,6 +179,8 @@ export default function MemeStudio() {
                   onSendMessage={sendMessage}
                   selectedNews={selectedNews}
                   onGenerateMeme={generateMeme}
+                  selectedModel={selectedModel}
+                  setSelectedModel={setSelectedModel}
                 />
               )}
 
@@ -204,5 +198,6 @@ export default function MemeStudio() {
     </div>
   );
 }
+
 
 
