@@ -1,30 +1,43 @@
-from transformers import AutoTokenizer, AutoModel
-import torch
-import numpy as np
+import requests
 import os
+import numpy as np
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class EmbeddingService:
-    def __init__(self, model_name="sentence-transformers/all-MiniLM-L6-v2"):
-        self.local_path = os.path.join("models", model_name.split("/")[-1])
-        os.makedirs(self.local_path, exist_ok=True)
-        
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name, 
-            cache_dir=self.local_path
-        )
-        self.model = AutoModel.from_pretrained(
-            model_name, 
-            cache_dir=self.local_path
-        )
+    def __init__(self):
+        self.lm_studio_url = os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1")
 
     def get_embeddings(self, texts):
-        inputs = self.tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-        
-        # Mean pooling
-        embeddings = outputs.last_hidden_state.mean(dim=1)
-        return embeddings.numpy()
+        """Call LM Studio for embeddings"""
+        if isinstance(texts, str):
+            texts = [texts]
+            
+        try:
+            # Note: Not all LM Studio models support /embeddings. 
+            # If it fails, we'll return a mock vector for compatibility.
+            response = requests.post(
+                f"{self.lm_studio_url}/embeddings",
+                json={
+                    "model": "text-embedding-nomic-v1.5", # Standard LM Studio embedding model
+                    "input": texts
+                },
+                timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+            # LM Studio returns data as a list of dicts with 'embedding' key
+            return np.array([item["embedding"] for item in data["data"]])
+            
+        except Exception as e:
+            print(f"EmbeddingService Error: {e}")
+            # Mock 384-dimensional vector (typical for all-MiniLM-L6-v2)
+            return np.zeros((len(texts), 384))
 
     def cosine_similarity(self, vec1, vec2):
-        return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+        norm1 = np.linalg.norm(vec1)
+        norm2 = np.linalg.norm(vec2)
+        if norm1 == 0 or norm2 == 0:
+            return 0
+        return np.dot(vec1, vec2) / (norm1 * norm2)

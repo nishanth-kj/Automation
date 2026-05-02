@@ -11,17 +11,14 @@ class ErrorDetail(BaseModel):
 
 class ApiResponse(BaseModel):
     status: int  # 1 for success, 0 for error
-    error: ErrorDetail
+    error: Optional[ErrorDetail] = None
     data: Optional[Any] = None
 
     @classmethod
-    def success(cls, data: Any = None, message: str = ErrorMessage.SUCCESS):
+    def success(cls, data: Any = None):
         return cls(
             status=ApiStatus.SUCCESS,
-            error=ErrorDetail(
-                code=ErrorCode.NO_ERROR,
-                message=message
-            ),
+            error=None,
             data=data
         )
 

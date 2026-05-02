@@ -1,56 +1,30 @@
-import torch
-from transformers import AutoProcessor, AutoModelForImageTextToText
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class TextService:
     def __init__(self):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model_id = "google/gemma-4-E2B-it"
-        self.local_path = "models/gemma-4-E2B-it"
-        self.processor = None
-        self.model = None
+        self.lm_studio_url = os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1")
 
-    def _load_model(self):
-        if self.model is not None:
-            return
-
-        # Download + save locally
-        self.processor = AutoProcessor.from_pretrained(
-            self.model_id,
-            cache_dir=self.local_path
-        )
-
-        self.model = AutoModelForImageTextToText.from_pretrained(
-            self.model_id,
-            cache_dir=self.local_path,
-            dtype=torch.float16,
-            device_map="auto"
-        )
-
-    def generate(self, prompt):
-        self._load_model()
-        messages = [
-
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": prompt}]
-            }
-        ]
-
-        inputs = self.processor.apply_chat_template(
-            messages,
-            tokenize=True,
-            return_dict=True,
-            return_tensors="pt",
-            add_generation_prompt=True
-        ).to(self.model.device)
-
-        input_len = inputs["input_ids"].shape[-1]
-
-        outputs = self.model.generate(
-            **inputs,
-            max_new_tokens=80
-        )
-
-        return self.processor.decode(
-            outputs[0][input_len:], skip_special_tokens=True
-        )
+    def generate(self, prompt: str) -> str:
+        """Call LM Studio for general text generation"""
+        try:
+            response = requests.post(
+                f"{self.lm_studio_url}/chat/completions",
+                json={
+                    "model": "google/gemma-4-e4b",
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.7,
+                },
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            print(f"TextService Error: {e}")
+            return f"Error: Could not reach LM Studio. ({str(e)})"

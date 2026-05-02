@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from pydantic import BaseModel
 from services.meme_service import MemeService
 from services.text_service import TextService

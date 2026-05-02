@@ -7,38 +7,50 @@ AI News Meme Studio is a high-fidelity application platform that automates the c
 - **API Framework**: FastAPI (Uvicorn)
 - **Web Frontend**: Next.js (React, TailwindCSS)
 - **Desktop UI**: PySide6 (Qt for Python)
-- **AI Models**: Gemma 4 (Text), Flux (Image), all-MiniLM-L6-v2 (Embeddings).
+- **AI Models**: 
+  - **Text (Gemma)**: Powered by **LM Studio** (OpenAI-compatible API on port 1234).
+  - **Images**: Powered by **ComfyUI** (REST API on port 8188).
 - **Standardized Communication**: Unified `ApiResponse` model with nested `ErrorDetail`.
 
 ## Application Architecture
 
 ### 1. Controller Layer (`/controllers`)
-- **NewsController**: Endpoints for news feed management.
-- **MemeController**: AI meme generation pipeline.
-- **RagController**: Semantic search and indexing.
-- **AiController**: General AI prompt processing.
+- **NewsController**, **MemeController**, **RagController**, **AiController**, **ChatController**.
+- Controllers must strictly use **Request Models** from `/models/requests`.
 
 ### 2. Services Layer (`/services`)
+- **AiService**: Singleton service for all AI interactions. Handles DB persistence via repositories.
 - **NewsService**, **TextService**, **ImageGenerateService**, **RagService**, **MemeService**.
 
-### 3. Utility & Constants Layer (`/utils`)
+### 3. Repository Layer (`/repository`)
+- **ChatRepository**: Persistence for chat interactions.
+- **NewsRepository**, **MemeRepository**, **RagRepository**, **SettingRepository**.
+
+### 4. Utility & Constants Layer (`/utils`)
 - **api_response.py**: Root response model (`status`, `error`, `data`).
-- **contants/**:
-  - `api_status.py`: API-level signaling (`1`/`0`).
-  - `error_code.py`: Strict integer error codes.
-  - `error_message.py`: Standardized string messages.
-  - `status.py`: Resource/DB status enums.
-- **exception/api_exception.py**: Custom exception handler that maps `ErrorCode` to `ErrorMessage`.
+- **contants/**: `api_status.py`, `error_code.py`, `error_message.py`, `status.py`.
 
-## Application Flow
+## Development Guidelines - Adding New APIs
 
-1. **API Initialization**: `main.py` (at root) initializes FastAPI and registers global handlers for `ApiException`.
-2. **Standardized Responses**: Every endpoint returns an `ApiResponse` object.
-3. **Error Handling**: Throwing an `ApiException(ErrorCode.X)` automatically generates a JSON response with the correct integer code and standard message.
+When adding new endpoints, follow the project's strict tiered architecture:
 
-## Data Schema Standards
-- **API Status**: `1` (Success), `0` (Error).
-- **Error Object**: Always includes `code`, `message`, and `field`.
+1. **Define the Request Model**: Create a new file in `models/requests/` (e.g., `chat_request.py`).
+   ```python
+   class ChatRequest(BaseModel):
+       model: str
+       system_prompt: str
+       input: str
+   ```
+2. **Implement Logic in Service Layer**: Add methods to `/services`. 
+   - **DB Persistence**: Services should use the Repository layer to store/retrieve data.
+   - Example: `AiService.chat()` calls `ChatRepository.save()`.
+3. **Create a Controller**: Define the router in `/controllers`. 
+   - **Strict Rule**: Import the request model and pass data to the service.
+   - Return `ApiResponse.success(data)`.
+4. **Register the Router**: Include the new controller in `main.py`.
+
+### Example: Chat API (`/api/v1/chat`)
+- **Flow**: `ChatController` -> `ChatRequest` (from `/models/requests`) -> `AiService.chat()` -> `ChatRepository` -> `ApiResponse`.
 
 ---
 *Updated: 2026-05-02*
